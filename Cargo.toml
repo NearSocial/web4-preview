@@ -1,6 +1,6 @@
 [package]
 name = "web4"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Eugene The Dream"]
 edition = "2018"
 
@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 near-sdk = "4.0.0"
+near-contract-standards = "4.0.0"
 
 [profile.release]
 codegen-units = 1

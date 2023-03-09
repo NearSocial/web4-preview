@@ -50,25 +50,23 @@ pub struct Nft {
     pub contract_id: Option<String>,
 }
 
-pub(crate) fn image_to_url(image: Image) -> Option<String> {
+pub enum UrlOrNft {
+    Url(String),
+    Nft(String, String),
+}
+
+pub(crate) fn image_to_url(image: Image) -> Option<UrlOrNft> {
     if let Some(url) = &image.url {
-        Some(url.clone())
+        Some(UrlOrNft::Url(url.clone()))
     } else if let Some(ipfs_cid) = &image.ipfs_cid {
-        Some(format!("https://ipfs.near.social/ipfs/{}", ipfs_cid))
-    } else if let Some(_nft) = &image.nft {
-        // if let Some(token_id) = &nft.tokenId {
-        //     if let Some(contract_id) = &nft.contractId {
-        //         Some(format!(
-        //             "https://near.social/nft/{}/{}",
-        //             contract_id, token_id
-        //         ))
-        //     } else {
-        //         None
-        //     }
-        // } else {
-        //     None
-        // }
-        None
+        Some(UrlOrNft::Url(format!(
+            "https://ipfs.near.social/ipfs/{}",
+            ipfs_cid
+        )))
+    } else if let Some(nft) = &image.nft {
+        let token_id = nft.token_id.clone()?;
+        let contract_id = nft.contract_id.clone()?;
+        Some(UrlOrNft::Nft(contract_id, token_id))
     } else {
         None
     }
