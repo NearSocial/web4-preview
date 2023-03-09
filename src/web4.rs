@@ -14,7 +14,7 @@ const DEFAULT_ACCOUNT_IMAGE: &str =
 
 const DEFAULT_POST_DESCRIPTION: &str = "";
 const DEFAULT_POST_IMAGE: &str = "https://near.social/assets/logo.png";
-const IPFS_PREFIX: &str = "https://cloudflare-ipfs.com/ipfs";
+const IPFS_PREFIX: &str = "https://ipfs.near.social/ipfs";
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
@@ -255,6 +255,7 @@ impl Contract {
                 contract_id.to_string(),
                 token_id
             );
+            let mut preload_urls = vec![nft_metadata_url.clone(), token_url.clone()];
             return if let Some(preloads) = request.preloads {
                 let token: Token = near_sdk::serde_json::from_slice(
                     &preloads
@@ -285,7 +286,37 @@ impl Contract {
                     reference_hash: None,
                 });
                 let token_metadata = token.metadata.expect("Token metadata is missing");
-                let token_media = token_metadata.media.unwrap_or_default();
+                let token_media = token_metadata.media.clone().unwrap_or_default();
+
+                if token_media.is_empty() && token_metadata.reference.is_some() {
+                    let reference = token_metadata.reference.unwrap();
+                    let url = if nft_metadata.base_uri == Some("https://arweave.net".to_string())
+                        && !reference.starts_with("https://")
+                    {
+                        format!("https://arweave.net/{}", reference)
+                    } else if reference.starts_with("https://") || reference.starts_with("http://")
+                    {
+                        reference
+                    } else if reference.starts_with("ar://") {
+                        format!("https://arweave.net/{}", &reference[5..])
+                    } else {
+                        "".to_string()
+                    };
+                    if !url.is_empty() {
+                        if let Some(preload) = preloads.get(&url) {
+                            if let Some(body) = &preload.body {
+                                let reference: Reference =
+                                    near_sdk::serde_json::from_slice(&body.0).unwrap_or_default();
+                                if let Some(media) = reference.media {
+                                    return Web4Response::plain_response(media);
+                                }
+                            }
+                        } else {
+                            preload_urls.push(url);
+                            return Web4Response::preload_urls(preload_urls);
+                        }
+                    }
+                }
 
                 let image_url = if token_media.starts_with("https://")
                     || token_media.starts_with("http://")

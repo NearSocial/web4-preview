@@ -8,3 +8,9 @@ pub struct Token {
     pub owner_id: AccountId,
     pub metadata: Option<TokenMetadata>,
 }
+
+#[derive(Deserialize, Default)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Reference {
+    pub media: Option<String>,
+}
